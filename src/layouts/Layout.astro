@@ -1,0 +1,309 @@
+---
+interface Props {
+  title: string;
+  description?: string;
+}
+
+const { 
+  title, 
+  description = "A beautiful collection of artwork from renowned artists including Alphonse Mucha, Henri de Toulouse-Lautrec, and more." 
+} = Astro.props;
+---
+
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width" />
+    <meta name="description" content={description} />
+    <meta name="theme-color" content="#ffffff" />
+    
+    <!-- Open Graph / Social Media -->
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content={title} />
+    <meta property="og:description" content={description} />
+    <meta property="og:site_name" content="Art Gallery" />
+    
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="preload" href="https://cdn.jsdelivr.net/npm/photoswipe@4.1.3/dist/photoswipe.css" as="style" />
+    <link rel="preload" href="https://cdn.jsdelivr.net/npm/photoswipe@4.1.3/dist/photoswipe-ui-default.min.js" as="script" />
+    <meta name="generator" content={Astro.generator} />
+    <title>{title}</title>
+  </head>
+  <body class="bg-gray-50 min-h-screen">
+    <div class="max-w-7xl mx-auto p-4 sm:p-6 lg:p-8">
+      <slot />
+    </div>
+    
+    <!-- PhotoSwipe Root Element -->
+    <div class="pswp" tabindex="-1" role="dialog" aria-hidden="true" aria-modal="true" aria-labelledby="pswp-gallery-title">
+      <span id="pswp-gallery-title" class="sr-only">Art Gallery Lightbox</span>
+      <div class="pswp__bg"></div>
+      <div class="pswp__scroll-wrap">
+        <div class="pswp__container" aria-live="polite">
+          <div class="pswp__item"></div>
+          <div class="pswp__item"></div>
+          <div class="pswp__item"></div>
+        </div>
+        <div class="pswp__ui pswp__ui--hidden">
+          <div class="pswp__top-bar">
+            <div class="pswp__counter" aria-live="polite" aria-atomic="true"></div>
+            <button class="pswp__button pswp__button--close" title="Close (Esc)" aria-label="Close lightbox"></button>
+            <button class="pswp__button pswp__button--share" title="Share" aria-label="Share" hidden></button>
+            <button class="pswp__button pswp__button--fs" title="Toggle fullscreen" aria-label="Toggle fullscreen"></button>
+            <button class="pswp__button pswp__button--zoom" title="Zoom in/out" aria-label="Zoom in/out"></button>
+            <div class="pswp__preloader" aria-hidden="true">
+              <div class="pswp__preloader__icn">
+                <div class="pswp__preloader__cut">
+                  <div class="pswp__preloader__donut"></div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="pswp__share-modal pswp__share-modal--hidden pswp__single-tap" aria-hidden="true">
+            <div class="pswp__share-tooltip"></div>
+          </div>
+          <button class="pswp__button pswp__button--arrow--left" title="Previous (arrow left)" aria-label="Previous image"></button>
+          <button class="pswp__button pswp__button--arrow--right" title="Next (arrow right)" aria-label="Next image"></button>
+          <div class="pswp__caption">
+            <div class="pswp__caption__center" aria-live="polite" aria-atomic="true"></div>
+          </div>
+        </div>
+      </div>
+      <div class="pswp-keyboard-help sr-only">
+        Use arrow keys to navigate between images, Escape to close, and Space to toggle zoom.
+      </div>
+    </div>
+    
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/photoswipe@4.1.3/dist/photoswipe.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/photoswipe@4.1.3/dist/default-skin/default-skin.css">
+    <script is:inline src="https://cdn.jsdelivr.net/npm/photoswipe@4.1.3/dist/photoswipe.min.js"></script>
+    <script is:inline src="https://cdn.jsdelivr.net/npm/photoswipe@4.1.3/dist/photoswipe-ui-default.min.js"></script>
+    
+    <script is:inline>
+      document.addEventListener('DOMContentLoaded', function() {
+        // Preload images to get their natural dimensions with better error handling
+        const preloadImageDimensions = async (src) => {
+          return new Promise((resolve, reject) => {
+            const img = new Image();
+            
+            img.onload = function() {
+              resolve({
+                width: this.width,
+                height: this.height
+              });
+            };
+            
+            img.onerror = function() {
+              console.warn(`Could not load image: ${src}`);
+              reject(new Error(`Failed to load image: ${src}`));
+            };
+            
+            img.src = src;
+          });
+        };
+        
+        // Initialize gallery with proper dimensions
+        const initGallery = async () => {
+          // Performance optimization: fetch all data at once
+          const galleryDataItems = document.querySelectorAll('.pswp-gallery-data > div');
+          const galleryItems = [];
+          const preloadPromises = [];
+          
+          // Create initial gallery items and track promises
+          galleryDataItems.forEach((item, index) => {
+            const src = item.dataset.src;
+            const title = item.dataset.title;
+            const artist = item.dataset.artist;
+            
+            // Add basic item structure
+            galleryItems[index] = {
+              src: src,
+              // Default values until actual dimensions are loaded
+              w: 1200,
+              h: 800,
+              title: `<div class="pswp-title">${title}</div><div class="pswp-artist">${artist}</div>`,
+              alt: `${title} by ${artist}`,
+              initialZoomLevel: 0.9, 
+              doubleTapZoom: 1.5
+            };
+            
+            // Add to promise collection for parallel loading
+            const preloadPromise = preloadImageDimensions(src)
+              .then(dimensions => {
+                // Update with actual dimensions
+                galleryItems[index].w = dimensions.width;
+                galleryItems[index].h = dimensions.height;
+              })
+              .catch(() => {
+                // Keep default dimensions on error
+                console.warn(`Using default dimensions for: ${title}`);
+              });
+            
+            preloadPromises.push(preloadPromise);
+          });
+          
+          // Wait for all images to preload (or fail gracefully)
+          await Promise.allSettled(preloadPromises);
+          
+          // Setup click and keyboard handlers for all art cards
+          const artCards = document.querySelectorAll('.art-card');
+          
+          const openPhotoSwipe = (index) => {
+            const pswpElement = document.querySelector('.pswp');
+            
+            const options = {
+              index: parseInt(index),
+              bgOpacity: 0.9,
+              showHideOpacity: true,
+              shareEl: false,
+              fullscreenEl: true,
+              zoomEl: true,
+              counterEl: true,
+              captionEl: true,
+              closeOnScroll: false,
+              closeOnVerticalDrag: true,
+              history: false,
+              preloaderEl: true,
+              focus: true,
+              modal: true,
+              errorMsg: '<div class="pswp__error-msg">Image not found</div>',
+              pinchToClose: true,
+              allowPanToNext: true,
+              maxSpreadZoom: 2,
+              getThumbBoundsFn: function(index) {
+                const thumbnail = artCards[index].querySelector('img');
+                const pageYScroll = window.pageYOffset || document.documentElement.scrollTop;
+                const rect = thumbnail.getBoundingClientRect();
+                return { x: rect.left, y: rect.top + pageYScroll, w: rect.width };
+              },
+              // Accessibility focus trap
+              addCaptionHTMLFn: function(item, captionEl) {
+                if(!item.title) {
+                  captionEl.children[0].innerHTML = '';
+                  return false;
+                }
+                captionEl.children[0].innerHTML = item.title;
+                return true;
+              }
+            };
+            
+            // Initialize PhotoSwipe
+            const gallery = new PhotoSwipe(pswpElement, PhotoSwipeUI_Default, galleryItems, options);
+            
+            // Fix for image dimensions in various browsers
+            gallery.listen('gettingData', function(index, item) {
+              if (item.w < 1200 || item.h < 800) {
+                const img = new Image();
+                img.onload = function() {
+                  item.w = this.width;
+                  item.h = this.height;
+                  gallery.invalidateCurrItems();
+                  gallery.updateSize(true);
+                };
+                img.src = item.src;
+              }
+            });
+            
+            // Ensure keyboard trap for accessibility
+            gallery.listen('initialZoomInEnd', function() {
+              // Set focus to the first focusable element
+              setTimeout(() => {
+                const focusableElements = pswpElement.querySelectorAll(
+                  'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
+                );
+                if (focusableElements.length) {
+                  focusableElements[0].focus();
+                }
+              }, 100);
+            });
+            
+            // Restore focus on close
+            gallery.listen('destroy', function() {
+              setTimeout(() => {
+                artCards[gallery.getCurrentIndex()].focus();
+              }, 100);
+            });
+            
+            gallery.init();
+            
+            return gallery;
+          };
+          
+          // Attach click handlers to cards
+          artCards.forEach(function(card) {
+            card.addEventListener('click', function(e) {
+              e.preventDefault();
+              openPhotoSwipe(card.dataset.index);
+            });
+          });
+        };
+        
+        // Start the gallery initialization
+        initGallery().catch(error => {
+          console.error('Failed to initialize gallery:', error);
+        });
+      });
+    </script>
+  </body>
+</html>
+
+<style is:global>
+  @tailwind base;
+  @tailwind components;
+  @tailwind utilities;
+
+  /* PhotoSwipe Caption Customization */
+  .pswp__caption__center {
+    text-align: center;
+    max-width: 600px;
+    margin: 0 auto;
+    font-size: 16px;
+    padding: 20px;
+    color: #FFF;
+    line-height: 1.5;
+  }
+  
+  .pswp-title {
+    font-size: 18px;
+    font-weight: 500;
+    margin-bottom: 6px;
+  }
+  
+  .pswp-artist {
+    font-style: italic;
+    font-size: 14px;
+    opacity: 0.9;
+  }
+
+  .pswp__button--share {
+    display: none;
+  }
+
+  /* Custom animation for smoother transitions */
+  .pswp--animated-in .pswp__bg,
+  .pswp--animated-in .pswp__zoom-wrap {
+    transition: opacity 333ms cubic-bezier(0.4, 0, 0.22, 1);
+  }
+
+  /* High contrast UI for better visibility */
+  .pswp__button {
+    opacity: 0.85;
+  }
+
+  .pswp__button:hover {
+    opacity: 1;
+  }
+
+  /* Better responsive behavior */
+  @media (max-width: 768px) {
+    .pswp__top-bar {
+      height: 50px;
+    }
+    
+    .pswp__caption__center {
+      font-size: 14px;
+      padding: 15px;
+    }
+  }
+</style>

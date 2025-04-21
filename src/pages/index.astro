@@ -1,0 +1,39 @@
+---
+import Layout from '../layouts/Layout.astro';
+import ArtCard from '../components/ArtCard.astro';
+import { artCollection } from '../data/artwork.js';
+---
+
+<Layout title="Art Gallery">
+  <main id="main-content">
+    <h1 class="sr-only">Art Gallery</h1>
+    
+    <section class="pt-8" aria-label="Artwork collection">
+      <div 
+        class="gallery grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-8"
+        role="region" 
+        aria-label="Art gallery grid"
+      >
+        {artCollection.map((artwork, index) => (
+          <ArtCard
+            title={artwork.title}
+            artist={artwork.artist}
+            filename={artwork.filename}
+            index={index}
+          />
+        ))}
+      </div>
+    </section>
+
+    <!-- Hidden data for PhotoSwipe -->
+    <div class="pswp-gallery-data hidden" aria-hidden="true">
+      {artCollection.map((artwork) => (
+        <div 
+          data-title={artwork.title}
+          data-artist={artwork.artist}
+          data-src={`/images/${artwork.filename}`}
+        ></div>
+      ))}
+    </div>
+  </main>
+</Layout>

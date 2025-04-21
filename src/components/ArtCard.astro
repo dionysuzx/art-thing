@@ -1,0 +1,39 @@
+---
+import { Image } from 'astro:assets';
+
+interface Props {
+  title: string;
+  artist: string;
+  filename: string;
+  index: number;
+}
+
+const { title, artist, filename, index } = Astro.props;
+const imagePath = `/images/${filename}`;
+---
+
+<div 
+  class="art-card group" 
+  data-index={index}
+  tabindex="0"
+  role="button"
+  aria-label={`View ${title} by ${artist}`}
+  onkeydown="if(event.key === 'Enter' || event.key === ' ') { this.click(); event.preventDefault(); }"
+>
+  <div class="relative overflow-hidden rounded-lg shadow-md bg-white hover:shadow-xl transition-all duration-300 hover:-translate-y-1 focus-within:ring-2 focus-within:ring-blue-500">
+    <div class="cursor-pointer aspect-[16/9] overflow-hidden">
+      <img 
+        src={imagePath}
+        alt={`Artwork: ${title} by ${artist}`}
+        loading="lazy"
+        width="600"
+        height="338"
+        class="w-full h-full object-cover object-center transition-transform duration-500 group-hover:scale-105"
+      />
+    </div>
+    <div class="p-4">
+      <h2 class="text-lg font-medium text-gray-900 line-clamp-1">{title}</h2>
+      <p class="text-sm text-gray-600 italic">{artist}</p>
+    </div>
+  </div>
+</div>
